@@ -5,13 +5,15 @@ No requiere dependencias externas: usa SQLite y la librería estándar de Python
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-DB_PATH = Path(__file__).with_name("cotizaciones.db")
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
+DB_PATH = DATA_DIR / "cotizaciones.db"
 INTERFAZ_PATH = Path(__file__).with_name("index.html")
 UNIDADES_VALIDAS = {"unidad", "metro", "rollo", "caja", "kit"}
 
@@ -24,6 +26,7 @@ def conexion() -> sqlite3.Connection:
 
 
 def inicializar_db() -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with conexion() as db:
         db.executescript("""
         CREATE TABLE IF NOT EXISTS materiales (
@@ -278,5 +281,6 @@ class APIHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     inicializar_db()
-    print("API disponible en http://localhost:8000")
-    ThreadingHTTPServer(("0.0.0.0", 8000), APIHandler).serve_forever()
+    port = int(os.environ.get("PORT", "8000"))
+    print(f"API disponible en http://localhost:{port}")
+    ThreadingHTTPServer(("0.0.0.0", port), APIHandler).serve_forever()
